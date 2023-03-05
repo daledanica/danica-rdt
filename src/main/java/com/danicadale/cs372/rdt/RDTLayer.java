@@ -48,20 +48,31 @@ public class RDTLayer {
     // Max amount of data to send in a flow control window (in chars, not bytes)
     public static final int FLOW_CONTROL_WIN_SIZE = 15;
 
+    // ###
+    private final String whom;
+
+    private final Message dataSent = new com.danicadale.cs372.rdt.RDTLayer.Message();
+
+    private final Message dataRcvd = new com.danicadale.cs372.rdt.RDTLayer.Message();
+
+    // any sent data not ACKed in this many iterations is a timeout->resend
+    private final int TIME_OUT_ITERATIONS = 3;
+
+    // set this true to implement
+    private final boolean CUMULATIVE_ACK = false;
+
     // effectively, the number of time we have to resend a segment because we didn't get an ACK for it
     private int countSegmentTimeouts = 0;
 
-    // ###
-    private final String whom;
-    private final Message dataSent = new com.danicadale.cs372.rdt.RDTLayer.Message();
-    private final Message dataRcvd = new com.danicadale.cs372.rdt.RDTLayer.Message();
-    // any sent data not ACKed in this many iterations is a timeout->resend
-    private final int TIME_OUT_ITERATIONS = 3;
     private UnreliableChannel sendChannel = null;
+
     private UnreliableChannel receiveChannel = null;
+
     private String dataToSend = "";
+
     // used as our network clock
     private int currentIteration = 0;
+
     // sequence counter
     private int currentSegmentNumber = 0;
 
@@ -220,7 +231,6 @@ public class RDTLayer {
          * The seqnum is the sequence number for the segment (in character number, not bytes)
          */
 
-        // carve off the leading window of the data to send
         System.out.println(whom + "processSend(): BEGIN");
         if (this.dataToSend.isEmpty()) {
             System.out.println(whom
@@ -228,50 +238,60 @@ public class RDTLayer {
                                + "to ack or we're the client with nothing left to send); bailing out");
             return;
         }
-        int len = Math.min(this.dataToSend.length(), DATA_LENGTH);
-        System.out.println(whom
-                           + "processSend():     pre this.dataToSend: '"
-                           + this.dataToSend
-                           + "' ("
-                           + this.dataToSend.length()
-                           + ")");
-        System.out.println(whom + "processSend():     len to send: " + len);
-        String data = "";
-        if (len > 0) {
-            data = this.dataToSend.substring(0, len);
-            if (len == this.dataToSend.length()) {
-                // nothing more to send
-                this.dataToSend = "";
+
+
+        while (!this.dataToSend.isEmpty()) {
+
+            //
+            // NOTE: until windowing is in place, this will send the ENTIRE msg!  It will bombard the server!
+            //
+
+            // carve out a segment from the leading portion of the remaining data we have to send
+            int len = Math.min(this.dataToSend.length(), DATA_LENGTH);
+            System.out.println(whom
+                               + "processSend():     pre this.dataToSend: '"
+                               + this.dataToSend
+                               + "' ("
+                               + this.dataToSend.length()
+                               + ")");
+            System.out.println(whom + "processSend():     len to send: " + len);
+            String data = "";
+            if (len > 0) {
+                data = this.dataToSend.substring(0, len);
+                if (len == this.dataToSend.length()) {
+                    // nothing more to send
+                    this.dataToSend = "";
+                }
+                else {
+                    this.dataToSend = this.dataToSend.substring(len);
+                }
             }
             else {
-                this.dataToSend = this.dataToSend.substring(len);
+                data = "";
             }
-        }
-        else {
-            data = "";
-        }
-        System.out.println(whom
-                           + "processSend():     post this.dataToSend: '"
-                           + this.dataToSend
-                           + "' ("
-                           + this.dataToSend.length()
-                           + ")");
-        System.out.println(whom + "processSend():     data: '" + data + "' (" + data.length() + ")");
+            System.out.println(whom
+                               + "processSend():     post this.dataToSend: '"
+                               + this.dataToSend
+                               + "' ("
+                               + this.dataToSend.length()
+                               + ")");
+            System.out.println(whom + "processSend():     data: '" + data + "' (" + data.length() + ")");
 
-        /* ********************************************************************************************************** */
-        // Display sending segment
-        sendSegment(getCurrentSequenceNumber(), data);
+            /* ********************************************************************************************************** */
+            // Display sending segment
+            sendSegment(getCurrentSequenceNumber(), data);
 
-        if (false) {
-            Segment segmentToSend = new Segment();
-            segmentToSend.setData(getCurrentSequenceNumber(), data);
-            segmentToSend.setStartIteration(this.currentIteration);
+            if (false) {
+                Segment segmentToSend = new Segment();
+                segmentToSend.setData(getCurrentSequenceNumber(), data);
+                segmentToSend.setStartIteration(this.currentIteration);
 
-            // Use the unreliable sendChannel to send the segment
-            System.out.println(whom + "processSend():     sending segment: " + segmentToSend.to_string());
-            this.sendChannel.send(segmentToSend);
-            this.dataSent.addPacket(segmentToSend);
-            System.out.println(whom + "processSend(): END");
+                // Use the unreliable sendChannel to send the segment
+                System.out.println(whom + "processSend():     sending segment: " + segmentToSend.to_string());
+                this.sendChannel.send(segmentToSend);
+                this.dataSent.addPacket(segmentToSend);
+                System.out.println(whom + "processSend(): END");
+            }
         }
     }
 
@@ -324,18 +344,13 @@ public class RDTLayer {
                                        + "### processReceiveAndSendRespond():    bad checksum!!! on "
                                        + segmentRcvd.to_string());
                     // bail out; don't ACK.  The client will retransmit when it times out on not getting the ACK
+                    dataRcvd.dump();  // dump to prove we didn't add it to our message
                     continue;
                 }
                 dataRcvd.addPacket(segmentRcvd);
 
                 // ack the rcvd segment
-                Segment segmentAck = new Segment();     // Segment acknowledging packet(s) received
-                segmentAck.setAck(segmentRcvd.getSegmentNumber());
-                System.out.println(whom
-                                   + "### processReceiveAndSendRespond():    Sending ACK: "
-                                   + segmentAck.to_string());
-                // Use the unreliable sendChannel to send the ack packet
-                this.sendChannel.send(segmentAck);
+                sendAck(segmentRcvd.getSegmentNumber());
             }
             else if (isAck(segmentRcvd)) {
                 // we should only be here if we're a client (servers don't rcv ACKs)
@@ -367,6 +382,19 @@ public class RDTLayer {
                 }
             }
         }
+    }
+
+
+
+    private void sendAck(int sequenceNumber) {
+
+        Segment segmentAck = new Segment();     // Segment acknowledging packet(s) received
+        segmentAck.setAck(sequenceNumber);
+        System.out.println(whom
+                           + "Sending ACK: "
+                           + segmentAck.to_string());
+        // Use the unreliable sendChannel to send the ack packet
+        this.sendChannel.send(segmentAck);
     }
 
 
@@ -422,6 +450,7 @@ public class RDTLayer {
 
 
         private final Map<Integer, Packet> packets = new TreeMap<>();
+
         private String wholeMessage;
 
 
