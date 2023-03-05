@@ -24,6 +24,14 @@ import java.util.TreeMap;
 
 
 
+/**
+ * The reliable data transfer (RDT) layer is used as a communication layer to resolve issues over an unreliable
+ * channel
+ *
+ * @author Danica Dale   CS-372
+ * @since March 2023
+ *
+ */
 public class RDTLayer {
 
     /* ************************************************************************************************************** */
