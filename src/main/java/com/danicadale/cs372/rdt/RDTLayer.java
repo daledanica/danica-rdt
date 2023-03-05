@@ -232,14 +232,13 @@ public class RDTLayer {
          */
 
         System.out.println(whom + "processSend(): BEGIN");
-        if (this.dataToSend.isEmpty()) {
-            System.out.println(whom
-                               + "processSend():    we have nothing to send (we're probably the server with nothing "
-                               + "to ack or we're the client with nothing left to send); bailing out");
-            return;
-        }
 
 
+        // if we don't have anything to send, then:
+        // -- We are either the server (which only sends ACKs, not data)
+        // OR
+        // -- We're the client and we've sent all of the entire message (but we may well still be running waint on
+        //    ACKs and dealing with resends).
         while (!this.dataToSend.isEmpty()) {
 
             //
@@ -277,7 +276,8 @@ public class RDTLayer {
                                + ")");
             System.out.println(whom + "processSend():     data: '" + data + "' (" + data.length() + ")");
 
-            /* ********************************************************************************************************** */
+            /*
+             * ********************************************************************************************************** */
             // Display sending segment
             sendSegment(getCurrentSequenceNumber(), data);
 
