@@ -25,12 +25,10 @@ import java.util.TreeMap;
 
 
 /**
- * The reliable data transfer (RDT) layer is used as a communication layer to resolve issues over an unreliable
- * channel
+ * The reliable data transfer (RDT) layer is used as a communication layer to resolve issues over an unreliable channel
  *
  * @author Danica Dale   CS-372
  * @since March 2023
- *
  */
 public class RDTLayer {
 
@@ -50,18 +48,21 @@ public class RDTLayer {
     // Max amount of data to send in a flow control window (in chars, not bytes)
     public static final int FLOW_CONTROL_WIN_SIZE = 15;
 
-    private final int countSegmentTimeouts = 0;
+    // effectively, the number of time we have to resend a segment because we didn't get an ACK for it
+    private int countSegmentTimeouts = 0;
 
     // ###
     private final String whom;
     private final Message dataSent = new com.danicadale.cs372.rdt.RDTLayer.Message();
     private final Message dataRcvd = new com.danicadale.cs372.rdt.RDTLayer.Message();
+    // any sent data not ACKed in this many iterations is a timeout->resend
+    private final int TIME_OUT_ITERATIONS = 3;
     private UnreliableChannel sendChannel = null;
     private UnreliableChannel receiveChannel = null;
     private String dataToSend = "";
-    // Use this for segment 'timeouts'
+    // used as our network clock
     private int currentIteration = 0;
-
+    // sequence counter
     private int currentSegmentNumber = 0;
 
 
@@ -107,6 +108,21 @@ public class RDTLayer {
     public void setReceiveChannel(UnreliableChannel channel) {
 
         this.receiveChannel = channel;
+    }
+
+
+
+    /**
+     * Fetch the data this RDT Layer is sending.
+     *
+     * @return the data this RDT Layer is sending.  If no data has been fed to this layer, or, we are a server, then
+     *         null is returned.
+     *
+     * @see #setDataToSend(String)
+     */
+    public String getDataToSend() {
+
+        return dataToSend;
     }
 
 
@@ -172,6 +188,9 @@ public class RDTLayer {
         // first, deal with anything that's been received.
         processReceiveAndSendRespond();
 
+        // now that we've dealt with any ACKs that have come in...
+        processTimeouts();
+
         // then, do any sending
         processSend();
     }
@@ -205,7 +224,8 @@ public class RDTLayer {
         System.out.println(whom + "processSend(): BEGIN");
         if (this.dataToSend.isEmpty()) {
             System.out.println(whom
-                               + "processSend():    we have nothing to send (we're probably the server); bailing out");
+                               + "processSend():    we have nothing to send (we're probably the server with nothing "
+                               + "to ack or we're the client with nothing left to send); bailing out");
             return;
         }
         int len = Math.min(this.dataToSend.length(), DATA_LENGTH);
@@ -219,7 +239,11 @@ public class RDTLayer {
         String data = "";
         if (len > 0) {
             data = this.dataToSend.substring(0, len);
-            if (len < this.dataToSend.length()) {
+            if (len == this.dataToSend.length()) {
+                // nothing more to send
+                this.dataToSend = "";
+            }
+            else {
                 this.dataToSend = this.dataToSend.substring(len);
             }
         }
@@ -236,15 +260,19 @@ public class RDTLayer {
 
         /* ********************************************************************************************************** */
         // Display sending segment
-        Segment segmentToSend = new Segment();
-        segmentToSend.setData(getCurrentSegmentNumber(), data);
-        segmentToSend.setStartIteration(this.currentIteration);
+        sendSegment(getCurrentSequenceNumber(), data);
 
-        // Use the unreliable sendChannel to send the segment
-        System.out.println(whom + "processSend():     sending segment: " + segmentToSend.to_string());
-        this.sendChannel.send(segmentToSend);
-        this.dataSent.addPacket(segmentToSend);
-        System.out.println(whom + "processSend(): END");
+        if (false) {
+            Segment segmentToSend = new Segment();
+            segmentToSend.setData(getCurrentSequenceNumber(), data);
+            segmentToSend.setStartIteration(this.currentIteration);
+
+            // Use the unreliable sendChannel to send the segment
+            System.out.println(whom + "processSend():     sending segment: " + segmentToSend.to_string());
+            this.sendChannel.send(segmentToSend);
+            this.dataSent.addPacket(segmentToSend);
+            System.out.println(whom + "processSend(): END");
+        }
     }
 
 
@@ -286,9 +314,18 @@ public class RDTLayer {
         System.out.println(whom + "### processReceiveAndSendRespond():    remembering what we've received...");
         for (Segment segmentRcvd : listIncomingSegments) {
             if (isData(segmentRcvd)) {
+                // we should only be here if we're a server receiving from a client
                 System.out.println(whom
                                    + "### processReceiveAndSendRespond():    remembering "
                                    + segmentRcvd.to_string());
+
+                if (!segmentRcvd.checkChecksum()) {
+                    System.out.println(whom
+                                       + "### processReceiveAndSendRespond():    bad checksum!!! on "
+                                       + segmentRcvd.to_string());
+                    // bail out; don't ACK.  The client will retransmit when it times out on not getting the ACK
+                    continue;
+                }
                 dataRcvd.addPacket(segmentRcvd);
 
                 // ack the rcvd segment
@@ -301,6 +338,7 @@ public class RDTLayer {
                 this.sendChannel.send(segmentAck);
             }
             else if (isAck(segmentRcvd)) {
+                // we should only be here if we're a client (servers don't rcv ACKs)
                 Segment ack = segmentRcvd;
                 System.out.println(whom
                                    + "### processReceiveAndSendRespond():    processing ACK for "
@@ -318,7 +356,48 @@ public class RDTLayer {
 
 
 
-    private int getCurrentSegmentNumber() {
+    private void processTimeouts() {
+
+        // for timeouts
+        int timeoutThreshold = this.currentIteration - this.TIME_OUT_ITERATIONS;
+        for (Packet packet : dataSent.getAllPackets()) {
+            if (!packet.getIsAcked()) {
+                if (packet.getStartIteration() < timeoutThreshold) {
+                    resendSegment(packet);
+                }
+            }
+        }
+    }
+
+
+
+    private void sendSegment(int sequenceNumber, String data) {
+
+        Segment segmentToSend = new Segment();
+        segmentToSend.setData(sequenceNumber, data);
+        segmentToSend.setStartIteration(this.currentIteration);
+
+        // Use the unreliable sendChannel to send the segment
+        System.out.println(whom + "sendSegment():     sending segment: " + segmentToSend.to_string());
+        this.sendChannel.send(segmentToSend);
+        this.dataSent.addPacket(segmentToSend);
+    }
+
+
+
+    private void resendSegment(Segment segment) {
+
+        // use the segment's original sequence number, so the server knows where it goes in the message.  However, it
+        // will be sent with the current iteration, which effectively restarts the timeout clock; it may take
+        // multiple resends across the unreliable channel to get this segment successfully to the server!
+        System.out.println(whom + "resendSegment():    re-sending segment: " + segment.to_string());
+        sendSegment(segment.getSegmentNumber(), segment.getPayload());
+        ++countSegmentTimeouts;
+    }
+
+
+
+    private int getCurrentSequenceNumber() {
 
         return this.currentSegmentNumber++;
     }
@@ -369,6 +448,8 @@ public class RDTLayer {
                 return;
             }
             if (dataPacket.getIsAcked()) {
+                // this can happen with delayed packets.  The client doesn't get an ACK, so it resends.  But then the
+                // delayed packet gets to the server and it ACKs.  Then we get here when the server re-ACKs our resend.
                 System.out.println("IHHHHHHH?  acking packet #" + ack.getAckNumber() + " but it is already acked!");
                 return;
             }

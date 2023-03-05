@@ -131,7 +131,10 @@ public class Segment {
         }
 
         Random random = new Random();
-        int char_pos = random.nextInt() % this.payload.length();
+
+        // ### bug: original did not check for negative random number, random.nextInt() will create.  This caused
+        // substring() to blow up
+        int char_pos = Math.abs(random.nextInt() % this.payload.length());
 
         // Replace character
         this.payload = this.payload.substring(0, char_pos) + 'X' + this.payload.substring(char_pos + 1);

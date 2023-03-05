@@ -44,10 +44,10 @@ public class RDT_Main {
 
         // Start with a reliable channel (all flags false)
         // As you create your rdt algorithm for send and receive, turn these on.
-        boolean outOfOrder = false;
-        boolean dropPackets = false;
-        boolean delayPackets = false;
-        boolean dataErrors = false;
+        boolean outOfOrder = true;
+        boolean dropPackets = true;
+        boolean delayPackets = true;
+        boolean dataErrors = true;
 
         // Create unreliable communication channels
         UnreliableChannel clientToServerChannel = new UnreliableChannel("clientToServerChannel", outOfOrder, dropPackets, delayPackets, dataErrors);
@@ -86,6 +86,17 @@ public class RDT_Main {
             {
                 System.out.println("$$$$$$$$ ALL DATA RECEIVED $$$$$$$$");
                 break;
+            }
+
+            //###
+            if (dataReceivedFromClient.endsWith("dog")) {
+                System.out.println("dog dog dog dog");
+            }
+
+            // ###
+            if (rdt_client.getDataToSend().isEmpty()) {
+                System.out.println("$$$$$$$$$$$ we haven't received all the correct data, but the client has nothing left to send!\nThere may be resends yet to prosecute, though!");
+                //break;
             }
 
             // Used to slow down display for each round when you don't want it to be as interactive

@@ -4,15 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="eb2a1917-4fa9-46dd-8614-7aaac24e5e85" name="Default Changelist" comment="Added readme">
-      <change afterPath="$PROJECT_DIR$/.idea/.gitignore" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/gradle.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/jarRepositories.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+    <list default="true" id="eb2a1917-4fa9-46dd-8614-7aaac24e5e85" name="Default Changelist" comment="Wow!  Everything works with all the data errors enabled.">
       <change afterPath="$PROJECT_DIR$/.idea/modules/danica-rdt.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/uiDesigner.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/danicadale/cs372/rdt/RDTLayer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/danicadale/cs372/rdt/RDTLayer.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/danicadale/cs372/rdt/RDT_Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/danicadale/cs372/rdt/RDT_Main.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/danicadale/cs372/rdt/Segment.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/danicadale/cs372/rdt/Segment.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -68,7 +65,7 @@
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="firstcommit" />
+        <entry key="$PROJECT_DIR$" value="main" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -87,7 +84,7 @@
     <property name="project.structure.last.edited" value="Project" />
     <property name="project.structure.proportion" value="0.0" />
     <property name="project.structure.side.proportion" value="0.0" />
-    <property name="settings.editor.selected.configurable" value="preferences.keymap" />
+    <property name="settings.editor.selected.configurable" value="reference.projectsettings.compiler.javacompiler" />
   </component>
   <component name="RecentsManager">
     <key name="MoveClassesOrPackagesDialog.RECENTS_KEY">
@@ -153,7 +150,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1677965907975</updated>
-      <workItem from="1677965911533" duration="28716000" />
+      <workItem from="1677965911533" duration="38084000" />
     </task>
     <task id="LOCAL-00001" summary="First checkin">
       <created>1678000297682</created>
@@ -176,7 +173,14 @@
       <option name="project" value="LOCAL" />
       <updated>1678001729520</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="Added readme">
+      <created>1678001909282</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1678001909282</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -186,35 +190,31 @@
     <MESSAGE value="First checkin" />
     <MESSAGE value="Added comment header" />
     <MESSAGE value="Added readme" />
-    <option name="LAST_COMMIT_MESSAGE" value="Added readme" />
+    <MESSAGE value="Wow!  Everything works with all the data errors enabled." />
+    <option name="LAST_COMMIT_MESSAGE" value="Wow!  Everything works with all the data errors enabled." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/src/main/java/com/danicadale/cs372/rdt/RDT_Main.java</url>
-          <line>99</line>
+          <line>110</line>
           <option name="timeStamp" value="6" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/src/main/java/com/danicadale/cs372/rdt/RDT_Main.java</url>
-          <line>110</line>
+          <line>121</line>
           <option name="timeStamp" value="8" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/src/main/java/com/danicadale/cs372/rdt/RDT_Main.java</url>
-          <line>125</line>
+          <line>136</line>
           <option name="timeStamp" value="9" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/src/main/java/com/danicadale/cs372/rdt/RDTLayer.java</url>
-          <line>365</line>
+          <line>444</line>
           <option name="timeStamp" value="58" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="java-line">
-          <url>file://$PROJECT_DIR$/src/main/java/com/danicadale/cs372/rdt/RDTLayer.java</url>
-          <line>372</line>
-          <option name="timeStamp" value="59" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
           <dependency id="0" />
