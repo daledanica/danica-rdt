@@ -42,10 +42,16 @@ public class RDTLayer {
 
 
     // Max length of the string data that will be sent per packet (in chars, not bytes)
-    public static final int DATA_LENGTH = 4;
+    private static final int DATA_LENGTH = 4;
 
     // Max amount of data to send in a flow control window (in chars, not bytes)
-    public static final int FLOW_CONTROL_WIN_SIZE = 15;
+    private static final int FLOW_CONTROL_WIN_SIZE = 15;
+
+    // set this true to enable window-based flow control
+    private static final boolean DO_FLOW_CONTROL = true;
+
+    // turn on to enable diagnostic logging
+    private static final boolean DEBUG = false;
 
     private static final int lastCumulativeAck = -1;
 
@@ -62,6 +68,8 @@ public class RDTLayer {
 
     private final Message dataRcvd = new Message();  // used by server
 
+    // how much room the server _should_ currently have available to receive data from the cilent
+    private int currentWindowCapacity = FLOW_CONTROL_WIN_SIZE;
 
     // effectively, the number of time we have to resend a segment because we didn't get an ACK for it
     private int countSegmentTimeouts = 0;
@@ -247,52 +255,60 @@ public class RDTLayer {
             // NOTE: until windowing is in place, this will send the ENTIRE msg!  It will bombard the server!
             //
 
-            // carve out a segment from the leading portion of the remaining data we have to send
-            int len = Math.min(this.dataToSend.length(), DATA_LENGTH);
-            System.out.println(whom
-                               + "processSend():     pre this.dataToSend: '"
-                               + this.dataToSend
-                               + "' ("
-                               + this.dataToSend.length()
-                               + ")");
-            System.out.println(whom + "processSend():     len to send: " + len);
-            String data = "";
-            if (len > 0) {
-                data = this.dataToSend.substring(0, len);
-                if (len == this.dataToSend.length()) {
-                    // nothing more to send
-                    this.dataToSend = "";
+            if (DO_FLOW_CONTROL) {
+
+                // if the flow control window says the server may not have resources to receive any new data, then we
+                // need to wait for some ACKs or timeouts to free up some room
+                while (this.currentWindowCapacity > 0) {
+
+                    // calculate how many chars of data we can send
+                    int len = Math.min(currentWindowCapacity, Math.min(this.dataToSend.length(), DATA_LENGTH));
+                    if (len <= 0) {
+                        // nothing to send; bail out
+                        return;
+                    }
+
+                    // carve off a slice of data from the leading portion of the remaining data we have to send
+                    String data = this.dataToSend.substring(0, len);
+                    if (len == this.dataToSend.length()) {
+                        // nothing more to send
+                        this.dataToSend = "";
+                    }
+                    else {
+                        this.dataToSend = this.dataToSend.substring(len);
+                    }
+
+                    // send the slice of data
+                    System.out.println(whom + "processSend():     data: '" + data + "' (" + data.length() + ")");
+                    sendData(getCurrentSequenceNumber(), data);
+                }
+
+                // we exhausted the flow control window's capacity; that's all we can send for now
+                break;
+            }
+
+            else {
+                // carve out a segment from the leading portion of the remaining data we have to send
+                int len = Math.min(this.dataToSend.length(), DATA_LENGTH);
+                System.out.println(whom + "processSend():     len to send: " + len);
+                String data = "";
+                if (len > 0) {
+                    data = this.dataToSend.substring(0, len);
+                    if (len == this.dataToSend.length()) {
+                        // nothing more to send
+                        this.dataToSend = "";
+                    }
+                    else {
+                        this.dataToSend = this.dataToSend.substring(len);
+                    }
                 }
                 else {
-                    this.dataToSend = this.dataToSend.substring(len);
+                    data = "";
                 }
-            }
-            else {
-                data = "";
-            }
-            System.out.println(whom
-                               + "processSend():     post this.dataToSend: '"
-                               + this.dataToSend
-                               + "' ("
-                               + this.dataToSend.length()
-                               + ")");
-            System.out.println(whom + "processSend():     data: '" + data + "' (" + data.length() + ")");
 
-            /*
-             * ********************************************************************************************************** */
-            // Display sending segment
-            sendSegment(getCurrentSequenceNumber(), data);
-
-            if (false) {
-                Segment segmentToSend = new Segment();
-                segmentToSend.setData(getCurrentSequenceNumber(), data);
-                segmentToSend.setStartIteration(this.currentIteration);
-
-                // Use the unreliable sendChannel to send the segment
-                System.out.println(whom + "processSend():     sending segment: " + segmentToSend.to_string());
-                this.sendChannel.send(segmentToSend);
-                this.dataSent.addPacket(segmentToSend);
-                System.out.println(whom + "processSend(): END");
+                // send the slice of data
+                System.out.println(whom + "processSend():     sending data: '" + data + "' (" + data.length() + ")");
+                sendData(getCurrentSequenceNumber(), data);
             }
         }
     }
@@ -365,6 +381,7 @@ public class RDTLayer {
                     highestSequenceRcvd = Math.max(highestSequenceRcvd, segmentRcvd.getSegmentNumber());
                 }
             }
+
             else if (isAck(segmentRcvd)) {
                 // we should only be here if we're a client (servers don't rcv ACKs)
                 Segment ack = segmentRcvd;
@@ -424,7 +441,7 @@ public class RDTLayer {
         for (Packet packet : dataSent.getAllPackets()) {
             if (!packet.getIsAcked()) {
                 if (packet.getStartIteration() < timeoutThreshold) {
-                    resendSegment(packet);
+                    resendData(packet);
                 }
             }
         }
@@ -440,16 +457,15 @@ public class RDTLayer {
         }
         Segment segmentAck = new Segment();     // Segment acknowledging packet(s) received
         segmentAck.setAck(sequenceNumber);
-        System.out.println(whom
-                           + "Sending ACK: "
-                           + segmentAck.to_string());
+        System.out.println(whom + "Sending ACK: " + segmentAck.to_string());
+
         // Use the unreliable sendChannel to send the ack packet
         this.sendChannel.send(segmentAck);
     }
 
 
 
-    private void sendSegment(int sequenceNumber, String data) {
+    private void sendData(int sequenceNumber, String data) {
 
         Segment segmentToSend = new Segment();
         segmentToSend.setData(sequenceNumber, data);
@@ -459,17 +475,30 @@ public class RDTLayer {
         System.out.println(whom + "sendSegment():     sending segment: " + segmentToSend.to_string());
         this.sendChannel.send(segmentToSend);
         this.dataSent.addPacket(segmentToSend);
+
+        // reduce the flow control window's capacity
+        currentWindowCapacity = Math.max(0, currentWindowCapacity - data.length());
     }
 
 
 
-    private void resendSegment(Segment segment) {
+    private void resendData(Segment segment) {
 
         // use the segment's original sequence number, so the server knows where it goes in the message.  However, it
         // will be sent with the current iteration, which effectively restarts the timeout clock; it may take
         // multiple resends across the unreliable channel to get this segment successfully to the server!
         System.out.println(whom + "resendSegment():    re-sending segment: " + segment.to_string());
-        sendSegment(segment.getSegmentNumber(), segment.getPayload());
+
+        // re-sends need to obey flow control, too.  If we don't have enough flow control window capacity, then we
+        // make a possibly risky assumption that the server really has capacity because just the fact that we're
+        // doing a resend probably means that a segment was dropped, or had a bad checksum, or is delayed.  We can't
+        // determine the reason from the client side, so we'll take the risk of the resend.  We need to game the
+        // window capacity numbers so that we don't allow new data to go out until we're sure there's room.
+        int resendLen = segment.getPayload().length();
+        if (currentWindowCapacity < resendLen) {
+            currentWindowCapacity = resendLen;
+        }
+        sendData(segment.getSegmentNumber(), segment.getPayload());
         ++countSegmentTimeouts;
     }
 
@@ -506,6 +535,8 @@ public class RDTLayer {
 
 
         public void dump() {
+
+            if (!DEBUG) return;
 
             System.out.println("\nMessage");
             System.out.println("-------");
@@ -559,6 +590,13 @@ public class RDTLayer {
                         System.out.println("\nCUMULATIVE ACK: " + dataPacket.getSequenceNumber() + "\n");
                         dataPacket.setIsAcked();
                         anythingAcked = true;
+
+                        // recover the flow control capacity of the ACKed segment
+                        if (DO_FLOW_CONTROL) {
+                            int recoveredLen = dataSent.getPacket(ack.getAckNumber()).getPayload().length();
+                            currentWindowCapacity = Math.min(FLOW_CONTROL_WIN_SIZE,
+                                                             currentWindowCapacity + recoveredLen);
+                        }
                     }
                 }
             }
@@ -582,6 +620,13 @@ public class RDTLayer {
                 }
                 dataPacket.setIsAcked();
                 anythingAcked = true;
+
+                if (DO_FLOW_CONTROL) {
+                    int recoveredLen = dataSent.getPacket(ack.getAckNumber()).getPayload().length();
+                    currentWindowCapacity = Math.min(FLOW_CONTROL_WIN_SIZE,
+                                                     currentWindowCapacity + recoveredLen);
+                }
+
                 System.out.println("Packet #" + ack.getAckNumber() + " marked ACKed!");
             }
 
