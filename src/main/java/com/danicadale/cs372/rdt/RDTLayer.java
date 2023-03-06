@@ -17,12 +17,11 @@ import java.util.TreeMap;
  */
 public class RDTLayer {
 
-
-    // Max length of the string data that will be sent per packet (in chars, not bytes)
-    private static final int DATA_LENGTH = 4;
-
     // Max amount of data to send in a flow control window (in chars, not bytes)
     private static final int FLOW_CONTROL_WIN_SIZE = 15;
+
+    // Max length of the string data that will be sent per packet (in chars, not bytes)
+    private static final int DATA_LENGTH = (int)Math.round(FLOW_CONTROL_WIN_SIZE / 3.0);
 
     // set this true to enable window-based flow control
     private static final boolean DO_FLOW_CONTROL = true;
@@ -33,7 +32,7 @@ public class RDTLayer {
     private static final int TIME_OUT_ITERATIONS = 3;
 
     // turn on to enable diagnostic logging
-    private static boolean DEBUG = false;
+    private static final boolean DEBUG = false;
 
     // set this true to implement cumulative ACKing
     private final boolean CUMULATIVE_ACK = true;
@@ -226,8 +225,6 @@ public class RDTLayer {
         boolean anyDataRcvd = false;
         for (Segment segmentRcvd : listIncomingSegments) {
 
-            int highestSequenceRcvd = -1;
-
             if (isData(segmentRcvd)) {
                 // we should only be here if we're a server receiving from a client
 
@@ -252,10 +249,9 @@ public class RDTLayer {
 
             else if (isAck(segmentRcvd)) {
                 // we should only be here if we're a client (servers don't rcv ACKs)
-                Segment ack = segmentRcvd;
                 if (DEBUG) System.out.println("processReceiveAndSendRespond():    processing ACK for "
-                                              + ack.to_string());
-                this.dataSent.markAcked(ack);
+                                              + segmentRcvd.to_string());
+                this.dataSent.markAcked(segmentRcvd);
             }
         }
 
@@ -282,28 +278,6 @@ public class RDTLayer {
 
 
 
-    /**
-     * Dump to the console all the current data (message) segments.  This is for diagnostic purposes.
-     * <p>
-     * Called by main.
-     */
-    public void dumpAllSegments() {
-
-        // note: we want to do this on request, regardless of the state of DEBUG
-        boolean currentDEBUG = DEBUG;
-        try {
-            DEBUG = true;
-            this.dataSent.dump();
-            System.out.println("All data ACKed: " + this.dataSent.getIsEverythingAcked());
-            System.out.println();
-        } finally {
-            // guarantee restoration even if an exception was thrown
-            DEBUG = currentDEBUG;
-        }
-    }
-
-
-
     private void processTimeouts() {
 
         // find all the packets that have been waiting too long for an ACK, and resend them to the server
@@ -312,7 +286,7 @@ public class RDTLayer {
                      .stream()
                      .filter(p -> !p.getIsAcked())
                      .filter(p -> p.getStartIteration() < timeoutThreshold)
-                     .forEach(p -> resendData(p));
+                     .forEach(this::resendData);
     }
 
 
@@ -416,21 +390,12 @@ public class RDTLayer {
 
             System.out.println("\nMessage");
             System.out.println("-------");
-            packets.entrySet()
-                   .forEach(p -> System.out.println("    {"
-                                                    + p.getKey().toString()
-                                                    + ", "
-                                                    + p.getValue().toString()
-                                                    + " }"));
+            packets.forEach((key, value) -> System.out.println("    {"
+                                                               + key.toString()
+                                                               + ", "
+                                                               + value.toString()
+                                                               + " }"));
             System.out.println();
-        }
-
-
-
-        public boolean getIsEverythingAcked() {
-
-            // look for the first packet that isn't ACKed
-            return !packets.values().stream().anyMatch(p -> !p.getIsAcked());
         }
 
 
@@ -510,6 +475,7 @@ public class RDTLayer {
         public int getHighestContiguousSequence() {
 
             int highest = -1;
+            //noinspection StatementWithEmptyBody
             while (packets.get(++highest) != null) ;
 
             return --highest;
@@ -549,14 +515,14 @@ public class RDTLayer {
         public String getAllData() {
 
             StringBuilder sb = new StringBuilder();
-            getAllPackets().stream().forEach(p -> sb.append(p.getPayload()));
+            getAllPackets().forEach(p -> sb.append(p.getPayload()));
             return sb.toString();
         }
     }
 
 
 
-    private class Packet extends Segment {
+    private static class Packet extends Segment {
 
         private boolean isAcked = false;
 
