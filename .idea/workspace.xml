@@ -4,15 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="eb2a1917-4fa9-46dd-8614-7aaac24e5e85" name="Default Changelist" comment="Code cleaned up a lot">
-      <change afterPath="$PROJECT_DIR$/build/libs/danica-rdt-long.jar" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/libs/danica-rdt-short.jar" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+    <list default="true" id="eb2a1917-4fa9-46dd-8614-7aaac24e5e85" name="Default Changelist" comment="Build and Run instructions">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build.gradle" beforeDir="false" afterPath="$PROJECT_DIR$/build.gradle" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/settings.gradle" beforeDir="false" afterPath="$PROJECT_DIR$/settings.gradle" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/danicadale/cs372/rdt/RDT_Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/danicadale/cs372/rdt/RDT_Main.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -262,7 +256,14 @@
       <option name="project" value="LOCAL" />
       <updated>1678078521286</updated>
     </task>
-    <option name="localTasksCounter" value="9" />
+    <task id="LOCAL-00009" summary="Build and Run instructions">
+      <created>1678087039891</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1678087039891</updated>
+    </task>
+    <option name="localTasksCounter" value="10" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -277,7 +278,8 @@
     <MESSAGE value="A little doc cleanup." />
     <MESSAGE value="Flow control works!" />
     <MESSAGE value="Code cleaned up a lot" />
-    <option name="LAST_COMMIT_MESSAGE" value="Code cleaned up a lot" />
+    <MESSAGE value="Build and Run instructions" />
+    <option name="LAST_COMMIT_MESSAGE" value="Build and Run instructions" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
