@@ -32,8 +32,8 @@ public class RDT_Main {
         "JFK - September 12, 1962\r\n";
 
 
-        //String dataToSend = shortSentence;
-        String dataToSend = longParagraph;
+        String dataToSend = shortSentence;
+        //String dataToSend = longParagraph;
 
         /* ********************************************************************************************************** */
 
