@@ -1,4 +1,5 @@
-package com.danicadale.cs372.rdt;/* ****************************************************************************************************************** */
+package com.danicadale.cs372.rdt;
+/* ****************************************************************************************************************** */
 /* Segment                                                                                                            */
 /*                                                                                                                    */
 /* Description:                                                                                                       */
@@ -49,7 +50,7 @@ public class Segment {
         return this.startDelayIteration;
     }
 
-    // ### There was no getter for the data or the segmentNumber!!!
+    // ### There was no getter for the data or the segmentNumber in the original code
     public String getPayload() { return this.payload; }
     public int getSegmentNumber() { return this.seqmentNumber; }
 

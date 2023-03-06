@@ -1,20 +1,6 @@
 package com.danicadale.cs372.rdt;
 
-/* ****************************************************************************************************************** */
-/* RDTLayer                                                                                                           */
-/*                                                                                                                    */
-/* Description:                                                                                                       */
-/* The reliable data transfer (RDT) layer is used as a communication layer to resolve issues over an unreliable       */
-/* channel.                                                                                                           */
-/*                                                                                                                    */
-/*                                                                                                                    */
-/* Notes:                                                                                                             */
-/* This file is meant to be changed.                                                                                  */
-/*                                                                                                                    */
-/*                                                                                                                    */
-/*                                                                                                                    */
-/*                                                                                                                    */
-/* ****************************************************************************************************************** */
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,21 +10,12 @@ import java.util.TreeMap;
 
 
 /**
- * The reliable data transfer (RDT) layer is used as a communication layer to resolve issues over an unreliable channel
+ * The reliable data transfer (RDT) layer is used to provide reliable communication over an unreliable channel
  *
  * @author Danica Dale   CS-372
  * @since March 2023
  */
 public class RDTLayer {
-
-    /* ************************************************************************************************************** */
-    /* Class Scope Variables                                                                                          */
-    /*                                                                                                                */
-    /*                                                                                                                */
-    /*                                                                                                                */
-    /*                                                                                                                */
-    /*                                                                                                                */
-    /* ************************************************************************************************************** */
 
 
     // Max length of the string data that will be sent per packet (in chars, not bytes)
@@ -50,19 +27,16 @@ public class RDTLayer {
     // set this true to enable window-based flow control
     private static final boolean DO_FLOW_CONTROL = true;
 
-    // turn on to enable diagnostic logging
-    private static final boolean DEBUG = false;
-
     private static final int lastCumulativeAck = -1;
 
     // any sent data not ACKed in this many iterations is a timeout->resend
-    private final int TIME_OUT_ITERATIONS = 3;
+    private static final int TIME_OUT_ITERATIONS = 3;
+
+    // turn on to enable diagnostic logging
+    private static boolean DEBUG = false;
 
     // set this true to implement cumulative ACKing
     private final boolean CUMULATIVE_ACK = true;
-
-    // ###
-    private final String whom;
 
     private final Message dataSent = new Message();  // used by client
 
@@ -88,29 +62,22 @@ public class RDTLayer {
 
 
 
-    /* ************************************************************************************************************** */
-    /* Constructors                                                                                                   */
-    /*                                                                                                                */
-    /*                                                                                                                */
-    /*                                                                                                                */
-    /*                                                                                                                */
-    /*                                                                                                                */
-    /* ************************************************************************************************************** */
-    public RDTLayer(String whom) {
-        // Add items as needed
-        this.whom = whom + ": ";
+    /**
+     * Construct this RDT Layer
+     */
+    public RDTLayer() {
+
     }
 
 
 
-    /* ************************************************************************************************************** */
-    /* setSendChannel()                                                                                               */
-    /*                                                                                                                */
-    /* Description:                                                                                                   */
-    /* Called by main to set the unreliable sending lower-layer channel                                               */
-    /*                                                                                                                */
-    /*                                                                                                                */
-    /* ************************************************************************************************************** */
+    /**
+     * Set the unreliable channel to be used for sending data.
+     * <p>
+     * This is set by main.
+     *
+     * @param channel The unreliable channel.
+     */
     public void setSendChannel(UnreliableChannel channel) {
 
         this.sendChannel = channel;
@@ -118,14 +85,13 @@ public class RDTLayer {
 
 
 
-    /* ************************************************************************************************************** */
-    /* setReceiveChannel()                                                                                            */
-    /*                                                                                                                */
-    /* Description:                                                                                                   */
-    /* Called by main to set the unreliable receiving lower-layer channel                                             */
-    /*                                                                                                                */
-    /*                                                                                                                */
-    /* ************************************************************************************************************** */
+    /**
+     * Set the unreliable channel to be used for receiving data.
+     * <p>
+     * This is set by main.
+     *
+     * @param channel The unreliable channel.
+     */
     public void setReceiveChannel(UnreliableChannel channel) {
 
         this.receiveChannel = channel;
@@ -134,28 +100,12 @@ public class RDTLayer {
 
 
     /**
-     * Fetch the data this RDT Layer is sending.
+     * Set the data this RDT layer is to send to the server.
+     * <p>
+     * This is set by main.
      *
-     * @return the data this RDT Layer is sending.  If no data has been fed to this layer, or, we are a server, then
-     *         null is returned.
-     *
-     * @see #setDataToSend(String)
+     * @param data The data to send.
      */
-    public String getDataToSend() {
-
-        return dataToSend;
-    }
-
-
-
-    /* ************************************************************************************************************** */
-    /* setDataToSend()                                                                                                */
-    /*                                                                                                                */
-    /* Description:                                                                                                   */
-    /* Called by main to set the string data to send                                                                  */
-    /*                                                                                                                */
-    /*                                                                                                                */
-    /* ************************************************************************************************************** */
     public void setDataToSend(String data) {
 
         this.dataToSend = data;
@@ -163,30 +113,27 @@ public class RDTLayer {
 
 
 
-    /* ************************************************************************************************************** */
-    /* getDataReceived()                                                                                              */
-    /*                                                                                                                */
-    /* Description:                                                                                                   */
-    /* Called by main to get the currently received and buffered string data, in order                                */
-    /*                                                                                                                */
-    /*                                                                                                                */
-    /* ************************************************************************************************************** */
+    /**
+     * Called by main to get the currently (as of now) received message data, in sequence order of segments.
+     *
+     * @return Called by main to get the currently (as of now) received message data, in sequence order of segments.
+     *         Note that dropped, delayed, and corrupted segment will show up as human-noticeable errors (missing data).
+     *         These will clear up as re-sends catch up with data issues.
+     */
     public String getDataReceived() {
 
-        System.out.println(whom + "getDataReceived():    all: '" + dataRcvd.getAllData() + "'");
-        return dataRcvd.getAllData();
+        return this.dataRcvd.getAllData();
     }
 
 
 
-    /* ************************************************************************************************************** */
-    /* getCountSegmentTimeouts()                                                                                      */
-    /*                                                                                                                */
-    /* Description:                                                                                                   */
-    /* Called by main to get the count of segment timeouts                                                            */
-    /*                                                                                                                */
-    /*                                                                                                                */
-    /* ************************************************************************************************************** */
+    /**
+     * Get the number of segment ACK timeouts detected by the client.
+     * <p>
+     * Called by main.
+     *
+     * @return the number of segment ACK timeouts detected by the client.
+     */
     public int getCountSegmentTimeouts() {
 
         return this.countSegmentTimeouts;
@@ -194,20 +141,18 @@ public class RDTLayer {
 
 
 
-    /* ************************************************************************************************************** */
-    /* processData()                                                                                                  */
-    /*                                                                                                                */
-    /* Description:                                                                                                   */
-    /* "timeslice". Called by main once per iteration                                                                 */
-    /*                                                                                                                */
-    /*                                                                                                                */
-    /* ************************************************************************************************************** */
+    /**
+     * Process all the incoming data, whether we're a server receiving data segments, or a client sending data segments
+     * and receiving ACKs.
+     * <p>
+     * Called by main
+     */
     public void processData() {
 
         this.currentIteration++;
 
         // first, deal with anything that's been received.
-        processReceiveAndSendRespond();
+        processReceiveAndSendResponse();
 
         // now that we've dealt with any ACKs that have come in...
         processTimeouts();
@@ -218,96 +163,39 @@ public class RDTLayer {
 
 
 
-    /* ************************************************************************************************************** */
-    /* processSend()                                                                                                  */
-    /*                                                                                                                */
-    /* Description:                                                                                                   */
-    /* Manages Segment sending tasks                                                                                  */
-    /*                                                                                                                */
-    /*                                                                                                                */
-    /* ************************************************************************************************************** */
-    public void processSend() {
-
-        /* ********************************************************************************************************** */
-        System.out.println(whom + "processSend(): Complete this...");
-
-        /* You should pipeline segments to fit the flow-control window
-         * The flow-control window is the constant RDTLayer.FLOW_CONTROL_WIN_SIZE
-         * The maximum data that you can send in a segment is RDTLayer.DATA_LENGTH
-         * These constants are given in # characters
-
-         * Somewhere in here you will be creating data segments to send.
-         * The data is just part of the entire string that you are trying to send.
-         * The seqnum is the sequence number for the segment (in character number, not bytes)
-         */
-
-        System.out.println(whom + "processSend(): BEGIN");
-
+    private void processSend() {
 
         // if we don't have anything to send, then:
         // -- We are either the server (which only sends ACKs, not data)
         // OR
-        // -- We're the client and we've sent all of the entire message (but we may well still be running waint on
+        // -- We're the client and we've sent all of the entire message (but we may well still be waiting on
         //    ACKs and dealing with resends).
-        while (!this.dataToSend.isEmpty()) {
+        //
+        while (!this.dataToSend.isEmpty() && (this.currentWindowCapacity > 0)) {
 
-            //
-            // NOTE: until windowing is in place, this will send the ENTIRE msg!  It will bombard the server!
-            //
+            // if the flow control window says the server may not have resources to receive any new data, then we
+            // need to wait for some ACKs or timeouts to free up some room
+            while (this.currentWindowCapacity > 0) {
 
-            if (DO_FLOW_CONTROL) {
-
-                // if the flow control window says the server may not have resources to receive any new data, then we
-                // need to wait for some ACKs or timeouts to free up some room
-                while (this.currentWindowCapacity > 0) {
-
-                    // calculate how many chars of data we can send
-                    int len = Math.min(currentWindowCapacity, Math.min(this.dataToSend.length(), DATA_LENGTH));
-                    if (len <= 0) {
-                        // nothing to send; bail out
-                        return;
-                    }
-
-                    // carve off a slice of data from the leading portion of the remaining data we have to send
-                    String data = this.dataToSend.substring(0, len);
-                    if (len == this.dataToSend.length()) {
-                        // nothing more to send
-                        this.dataToSend = "";
-                    }
-                    else {
-                        this.dataToSend = this.dataToSend.substring(len);
-                    }
-
-                    // send the slice of data
-                    System.out.println(whom + "processSend():     data: '" + data + "' (" + data.length() + ")");
-                    sendData(getCurrentSequenceNumber(), data);
+                // calculate how many chars of data we can send
+                int len = Math.min(this.currentWindowCapacity, Math.min(this.dataToSend.length(), DATA_LENGTH));
+                if (len <= 0) {
+                    // nothing to send; bail out
+                    return;
                 }
 
-                // we exhausted the flow control window's capacity; that's all we can send for now
-                break;
-            }
-
-            else {
-                // carve out a segment from the leading portion of the remaining data we have to send
-                int len = Math.min(this.dataToSend.length(), DATA_LENGTH);
-                System.out.println(whom + "processSend():     len to send: " + len);
-                String data = "";
-                if (len > 0) {
-                    data = this.dataToSend.substring(0, len);
-                    if (len == this.dataToSend.length()) {
-                        // nothing more to send
-                        this.dataToSend = "";
-                    }
-                    else {
-                        this.dataToSend = this.dataToSend.substring(len);
-                    }
+                // carve off a slice of data from the leading portion of the remaining data we have to send
+                String data = this.dataToSend.substring(0, len);
+                if (len == this.dataToSend.length()) {
+                    // nothing more to send
+                    this.dataToSend = "";
                 }
                 else {
-                    data = "";
+                    // data is not the remainder after the slice
+                    this.dataToSend = this.dataToSend.substring(len);
                 }
 
                 // send the slice of data
-                System.out.println(whom + "processSend():     sending data: '" + data + "' (" + data.length() + ")");
                 sendData(getCurrentSequenceNumber(), data);
             }
         }
@@ -315,41 +203,26 @@ public class RDTLayer {
 
 
 
-    /* ************************************************************************************************************** */
-    /* processReceive()                                                                                               */
-    /*                                                                                                                */
-    /* Description:                                                                                                   */
-    /* Manages Segment receive tasks                                                                                  */
-    /*                                                                                                                */
-    /*                                                                                                                */
-    /* ************************************************************************************************************** */
-    public void processReceiveAndSendRespond() {
+    private void processReceiveAndSendResponse() {
 
-        System.out.println(whom + "processReceiveAndSendRespond() BEGIN");
-
-        // This call returns a list of incoming segments (see Segment class)...
+        // get the incoming segments that have been received and need to be processed
         ArrayList<Segment> listIncomingSegments = this.receiveChannel.receive();
 
-        /* ********************************************************************************************************** */
-        // What segments have been received?
-        // How will you get them back in order?
-        // This is where a majority of your logic will be implemented
-        System.out.println(whom
-                           + "processReceiveAndSendRespond()    received: "
-                           + listIncomingSegments.size()
-                           + " segments");
+        if (DEBUG) System.out.println("processReceiveAndSendRespond() received: "
+                                      + listIncomingSegments.size()
+                                      + " segments");
         if (listIncomingSegments.isEmpty()) {
-            System.out.println(whom + "processReceiveAndSendRespond()    nothing received; bailing out");
+            if (DEBUG) System.out.println("processReceiveAndSendRespond() nothing received; bailing out");
             return;
         }
-        for (Segment segment : listIncomingSegments) {
-            System.out.println(whom + "processReceiveAndSendRespond()    received:     " + segment.to_string());
+
+        if (DEBUG) {
+            for (Segment segment : listIncomingSegments) {
+                System.out.println("processReceiveAndSendRespond() received:     " + segment.to_string());
+            }
         }
 
-        /* ********************************************************************************************************** */
-        // How do you respond to what you have received?
-        // How can you tell data segments apart from ack segemnts?
-        System.out.println(whom + "### processReceiveAndSendRespond():    remembering what we've received...");
+
         boolean anyDataRcvd = false;
         for (Segment segmentRcvd : listIncomingSegments) {
 
@@ -357,18 +230,17 @@ public class RDTLayer {
 
             if (isData(segmentRcvd)) {
                 // we should only be here if we're a server receiving from a client
-                System.out.println(whom
-                                   + "### processReceiveAndSendRespond():    remembering "
-                                   + segmentRcvd.to_string());
 
                 if (!segmentRcvd.checkChecksum()) {
-                    System.out.println(whom
-                                       + "### processReceiveAndSendRespond():    bad checksum!!! on "
+                    System.out.println("processReceiveAndSendRespond():    bad checksum!!! on "
                                        + segmentRcvd.to_string());
                     // bail out; don't ACK.  The client will retransmit when it times out on not getting the ACK
                     continue;
                 }
-                dataRcvd.addPacket(segmentRcvd);
+
+                // remember we've received this message segment, so we can put it together with all the outher
+                // segments to form the final complete message
+                this.dataRcvd.addPacket(segmentRcvd);
                 anyDataRcvd = true;
 
                 // ack the rcvd segment
@@ -376,18 +248,13 @@ public class RDTLayer {
                     // we're ACKing every segment received from the client; very chatty
                     sendAck(segmentRcvd.getSegmentNumber());
                 }
-                else {
-                    // keep track for sending a cumulative ack after we've received all the incoming segments
-                    highestSequenceRcvd = Math.max(highestSequenceRcvd, segmentRcvd.getSegmentNumber());
-                }
             }
 
             else if (isAck(segmentRcvd)) {
                 // we should only be here if we're a client (servers don't rcv ACKs)
                 Segment ack = segmentRcvd;
-                System.out.println(whom
-                                   + "### processReceiveAndSendRespond():    processing ACK for "
-                                   + ack.to_string());
+                if (DEBUG) System.out.println("processReceiveAndSendRespond():    processing ACK for "
+                                              + ack.to_string());
                 this.dataSent.markAcked(ack);
             }
         }
@@ -408,43 +275,44 @@ public class RDTLayer {
             sendAck(this.dataRcvd.getHighestContiguousSequence());
         }
 
-        System.out.println(whom
-                           + "### processReceiveAndSendRespond():    this.getDataReceived(): '"
-                           + this.getDataReceived()
-                           + "'");
-
-        System.out.println(whom + "### processReceiveAndSendRespond() END\n\n");
+        if (DEBUG) System.out.println(" processReceiveAndSendRespond(): data received so far: '"
+                                      + this.getDataReceived()
+                                      + "'");
     }
 
 
 
-    public boolean getIsAllDataAcked() {
-
-        return dataSent.getIsEverythingAcked();
-    }
-
-
-
+    /**
+     * Dump to the console all the current data (message) segments.  This is for diagnostic purposes.
+     * <p>
+     * Called by main.
+     */
     public void dumpAllSegments() {
 
-        dataSent.dump();
-        System.out.println("All data ACKed: " + getIsAllDataAcked());
-        System.out.println();
+        // note: we want to do this on request, regardless of the state of DEBUG
+        boolean currentDEBUG = DEBUG;
+        try {
+            DEBUG = true;
+            this.dataSent.dump();
+            System.out.println("All data ACKed: " + this.dataSent.getIsEverythingAcked());
+            System.out.println();
+        } finally {
+            // guarantee restoration even if an exception was thrown
+            DEBUG = currentDEBUG;
+        }
     }
 
 
 
     private void processTimeouts() {
 
-        // for timeouts
-        int timeoutThreshold = this.currentIteration - this.TIME_OUT_ITERATIONS;
-        for (Packet packet : dataSent.getAllPackets()) {
-            if (!packet.getIsAcked()) {
-                if (packet.getStartIteration() < timeoutThreshold) {
-                    resendData(packet);
-                }
-            }
-        }
+        // find all the packets that have been waiting too long for an ACK, and resend them to the server
+        int timeoutThreshold = this.currentIteration - TIME_OUT_ITERATIONS;
+        this.dataSent.getAllPackets()
+                     .stream()
+                     .filter(p -> !p.getIsAcked())
+                     .filter(p -> p.getStartIteration() < timeoutThreshold)
+                     .forEach(p -> resendData(p));
     }
 
 
@@ -455,9 +323,9 @@ public class RDTLayer {
             // this means that we don't have contiguous segments ACKed yet.  There's nothing for us to do yet.
             return;
         }
-        Segment segmentAck = new Segment();     // Segment acknowledging packet(s) received
+        Segment segmentAck = new Segment();
         segmentAck.setAck(sequenceNumber);
-        System.out.println(whom + "Sending ACK: " + segmentAck.to_string());
+        if (DEBUG) System.out.println("Sending ACK: " + segmentAck.to_string());
 
         // Use the unreliable sendChannel to send the ack packet
         this.sendChannel.send(segmentAck);
@@ -467,17 +335,20 @@ public class RDTLayer {
 
     private void sendData(int sequenceNumber, String data) {
 
+        // build the segment
         Segment segmentToSend = new Segment();
         segmentToSend.setData(sequenceNumber, data);
         segmentToSend.setStartIteration(this.currentIteration);
 
         // Use the unreliable sendChannel to send the segment
-        System.out.println(whom + "sendSegment():     sending segment: " + segmentToSend.to_string());
+        if (DEBUG) System.out.println("sendData():     sending segment: " + segmentToSend.to_string());
         this.sendChannel.send(segmentToSend);
+
+        // start tracking this segment for ACKing
         this.dataSent.addPacket(segmentToSend);
 
         // reduce the flow control window's capacity
-        currentWindowCapacity = Math.max(0, currentWindowCapacity - data.length());
+        this.currentWindowCapacity = Math.max(0, this.currentWindowCapacity - data.length());
     }
 
 
@@ -487,7 +358,7 @@ public class RDTLayer {
         // use the segment's original sequence number, so the server knows where it goes in the message.  However, it
         // will be sent with the current iteration, which effectively restarts the timeout clock; it may take
         // multiple resends across the unreliable channel to get this segment successfully to the server!
-        System.out.println(whom + "resendSegment():    re-sending segment: " + segment.to_string());
+        if (DEBUG) System.out.println("resendSegment():    re-sending segment: " + segment.to_string());
 
         // re-sends need to obey flow control, too.  If we don't have enough flow control window capacity, then we
         // make a possibly risky assumption that the server really has capacity because just the fact that we're
@@ -495,11 +366,13 @@ public class RDTLayer {
         // determine the reason from the client side, so we'll take the risk of the resend.  We need to game the
         // window capacity numbers so that we don't allow new data to go out until we're sure there's room.
         int resendLen = segment.getPayload().length();
-        if (currentWindowCapacity < resendLen) {
-            currentWindowCapacity = resendLen;
+        if (this.currentWindowCapacity < resendLen) {
+            this.currentWindowCapacity = resendLen;
         }
+
+        // resend the segment, but in it's original sequence
         sendData(segment.getSegmentNumber(), segment.getPayload());
-        ++countSegmentTimeouts;
+        ++this.countSegmentTimeouts;
     }
 
 
@@ -520,17 +393,20 @@ public class RDTLayer {
 
     private boolean isAck(Segment segment) {
 
+        // only ACKs have a positive ACK number; data segments have -1
         return segment.getAckNumber() >= 0;
     }
 
 
 
+    /**
+     * Status tracker for our data segments so we can detect un-ACKed segments due to data corruption, dropouts, delays,
+     * etc.
+     */
     private class Message {
 
-
+        // our segments in sequence order
         private final Map<Integer, Packet> packets = new TreeMap<>();
-
-        private String wholeMessage;
 
 
 
@@ -553,6 +429,7 @@ public class RDTLayer {
 
         public boolean getIsEverythingAcked() {
 
+            // look for the first packet that isn't ACKed
             return !packets.values().stream().anyMatch(p -> !p.getIsAcked());
         }
 
@@ -575,7 +452,7 @@ public class RDTLayer {
                     return;
                 }
 
-                // mark this segment and all its predecessors ACKed
+                // cumulative ACK: mark this segment and all its predecessors ACKed
                 for (int seqNum = 0; seqNum <= ack.getAckNumber(); seqNum++) {
                     Packet dataPacket = getPacket(seqNum);
                     if (dataPacket == null) {
@@ -586,8 +463,6 @@ public class RDTLayer {
                         return;
                     }
                     if (!dataPacket.getIsAcked()) {
-                        // we don't really care if it's already been ACKed.. we could've re-ACKed it anyway
-                        System.out.println("\nCUMULATIVE ACK: " + dataPacket.getSequenceNumber() + "\n");
                         dataPacket.setIsAcked();
                         anythingAcked = true;
 
@@ -612,22 +487,19 @@ public class RDTLayer {
                 }
                 if (dataPacket.getIsAcked()) {
                     // this can happen with delayed packets.  The client doesn't get an ACK, so it resends.  But then
-                    // the
-                    // delayed packet gets to the server and it ACKs.  Then we get here when the server re-ACKs our
-                    // resend.
-                    System.out.println("IHHHHHHH?  acking packet #" + ack.getAckNumber() + " but it is already acked!");
+                    // the delayed packet gets to the server and it ACKs.  Then we get here when the server re-ACKs
+                    // our resend.
                     return;
                 }
                 dataPacket.setIsAcked();
                 anythingAcked = true;
 
                 if (DO_FLOW_CONTROL) {
+                    // recover the window space used by this ACK'ed segment
                     int recoveredLen = dataSent.getPacket(ack.getAckNumber()).getPayload().length();
                     currentWindowCapacity = Math.min(FLOW_CONTROL_WIN_SIZE,
                                                      currentWindowCapacity + recoveredLen);
                 }
-
-                System.out.println("Packet #" + ack.getAckNumber() + " marked ACKed!");
             }
 
             if (anythingAcked) dump();
@@ -645,13 +517,6 @@ public class RDTLayer {
 
 
 
-        public void setWholeMessage(String wholeMessage) {
-
-            this.wholeMessage = wholeMessage;
-        }
-
-
-
         public Packet getPacket(int sequenceNumber) {
 
             return packets.get(sequenceNumber);
@@ -661,7 +526,6 @@ public class RDTLayer {
 
         public void addPacket(Segment segment) {
 
-            System.out.println("Message.addPacket(" + segment.to_string() + ")");
             addPacket(new Packet(segment));
         }
 
@@ -677,9 +541,7 @@ public class RDTLayer {
         public List<Packet> getAllPackets() {
 
             // copy-safe
-            List<Packet> all = new ArrayList<>(packets.size());
-            all.addAll(packets.values());
-            return all;
+            return new ArrayList<>(packets.values());
         }
 
 
@@ -687,9 +549,7 @@ public class RDTLayer {
         public String getAllData() {
 
             StringBuilder sb = new StringBuilder();
-            for (Packet packet : getAllPackets()) {
-                sb.append(packet.getPayload());
-            }
+            getAllPackets().stream().forEach(p -> sb.append(p.getPayload()));
             return sb.toString();
         }
     }

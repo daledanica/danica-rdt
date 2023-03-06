@@ -38,9 +38,8 @@ public class RDT_Main {
         /* ********************************************************************************************************** */
 
         // Create client and server
-        // ### remove the ID of whom the RDTLayer belongs to
-        RDTLayer rdt_client = new RDTLayer("CLIENT");
-        RDTLayer rdt_server = new RDTLayer("SERVER");
+        RDTLayer rdt_client = new RDTLayer();
+        RDTLayer rdt_server = new RDTLayer();
 
         // Start with a reliable channel (all flags false)
         // As you create your rdt algorithm for send and receive, turn these on.
@@ -50,8 +49,8 @@ public class RDT_Main {
         boolean dataErrors = true;
 
         // Create unreliable communication channels
-        UnreliableChannel clientToServerChannel = new UnreliableChannel("clientToServerChannel", outOfOrder, dropPackets, delayPackets, dataErrors);
-        UnreliableChannel serverToClientChannel = new UnreliableChannel("serverToClientChannel", outOfOrder, dropPackets, delayPackets, dataErrors);
+        UnreliableChannel clientToServerChannel = new UnreliableChannel(outOfOrder, dropPackets, delayPackets, dataErrors);
+        UnreliableChannel serverToClientChannel = new UnreliableChannel(outOfOrder, dropPackets, delayPackets, dataErrors);
 
         // Creat client and server that connect to unreliable channels
         rdt_client.setSendChannel(clientToServerChannel);
@@ -82,47 +81,35 @@ public class RDT_Main {
             String dataReceivedFromClient = rdt_server.getDataReceived();
             System.out.println("DataReceivedFromClient: '" + dataReceivedFromClient + "'");
 
-            // ###
-            if (rdt_client.getIsAllDataAcked() && dataReceivedFromClient.equals(dataToSend))
-            //if (dataReceivedFromClient.equals(dataToSend))
+            if (dataReceivedFromClient.equals(dataToSend))
             {
-                rdt_client.dumpAllSegments();
                 System.out.println("$$$$$$$$ ALL DATA RECEIVED $$$$$$$$");
                 break;
             }
 
-            //###
-            if (dataReceivedFromClient.endsWith("dog")) {
-                System.out.println("dog dog dog dog");
-            }
-
-            // ###
-            if (rdt_client.getDataToSend().isEmpty()) {
-                System.out.println("$$$$$$$$$$$ we haven't received all the correct data, but the client has nothing left to send!\nThere may be resends yet to prosecute, though!");
-                //break;
-            }
 
             // Used to slow down display for each round when you don't want it to be as interactive
             // with pressing enter to go to the next round.
             // Adjust from 1 to 1000 for 1 second delay. Value is in milliseconds.
-            try
+            if (false)
             {
-                Thread.sleep(1);
-            }
-            catch (InterruptedException e)
-            {
-                e.printStackTrace();
-            }
+                try
+                {
+                    Thread.sleep(1);
+                } catch (InterruptedException e)
+                {
+                    e.printStackTrace();
+                }
 
-            // Wait for user to press enter for next iteration
-            try
-            {
-                System.out.print("\nHit Enter to continue: ");
-                if (false) System.in.read();
-            }
-            catch (IOException e)
-            {
-                e.printStackTrace();
+                // Wait for user to press enter for next iteration
+                try
+                {
+                    System.out.print("\nHit Enter to continue: ");
+                    System.in.read();
+                } catch (IOException e)
+                {
+                    e.printStackTrace();
+                }
             }
         }
 

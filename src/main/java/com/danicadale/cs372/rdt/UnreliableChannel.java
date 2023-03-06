@@ -40,7 +40,6 @@ public class UnreliableChannel
     private int countAckPackets = 0;
     private int currentIteration = 0;
 
-    private String which; //###
     /* ************************************************************************************************************** */
     /* Constructors                                                                                                   */
     /*                                                                                                                */
@@ -49,10 +48,8 @@ public class UnreliableChannel
     /*                                                                                                                */
     /* ************************************************************************************************************** */
 
-    public UnreliableChannel( String which, //###
-            boolean canDeliverOutOfOrder, boolean canDropPackets, boolean canDelayPackets, boolean canHaveChecksumErrors)
+    public UnreliableChannel(boolean canDeliverOutOfOrder, boolean canDropPackets, boolean canDelayPackets, boolean canHaveChecksumErrors)
     {
-        this.which = which + ": "; //###
         this.canDeliverOutOfOrder = canDeliverOutOfOrder;
         this.canDropPackets = canDropPackets;
         this.canDelayPackets = canDelayPackets;
@@ -100,9 +97,7 @@ public class UnreliableChannel
 
     public void send(Segment seg)
     {
-        System.out.println(which + "### send(" + seg.to_string() + "): BEGIN");
         this.sendQueue.add(seg);
-        System.out.println(which + "### send(" + seg.to_string() + "): END");
     }
 
     /* ************************************************************************************************************** */
@@ -115,43 +110,30 @@ public class UnreliableChannel
 
     public ArrayList<Segment> receive()
     {
-        // ### Creating an empty ArrayList violates the contract of Collecetion.copy(): "The destination list's size
+        // ### BUG: Creating an empty ArrayList violates the contract of Collecetion.copy(): "The destination list's size
         // must be greater than or equal to the source list's size".  Had to fix by init'ing the size of the
         // ArrayList to be the size of the receiveQueue
         ArrayList<Segment> new_list = new ArrayList<>(this.receiveQueue.size());
         new_list.addAll(this.receiveQueue);
         //Collections.copy(new_list, this.receiveQueue);
         this.receiveQueue.clear();
-        System.out.println(which + "===receive() begin===");
-        System.out.println(which + "UnreliableChannel len receiveQueue: " + this.receiveQueue.size());
-
-        // ###
-        for (Segment segment : this.receiveQueue) {
-            System.out.println(which + "UnreliableChannel receiveQueue segment: " + segment.to_string());
-        }
-        System.out.println(which + "===receive() end===");
+        System.out.println("===receive() begin===");
+        System.out.println("UnreliableChannel len receiveQueue: " + this.receiveQueue.size());
 
         return new_list;
     }
 
     public void processData()
     {
-        System.out.println(which + "### UnreliableChannel.processData(): BEGIN");
-        System.out.println(which + "UnreliableChannel manage - len sendQueue: " + this.sendQueue.size());
-        // ###
-        for (Segment segment : this.sendQueue) {
-            System.out.println(which + "### UnreliableChannel.processData():    sendQueue: " + segment.to_string());
-        }
+        System.out.println("UnreliableChannel manage - len sendQueue: " + this.sendQueue.size());
+
         this.currentIteration++;
-        System.out.println(which + "### UnreliableChannel.processData():    this.currentIteration: " + this.currentIteration);
-        System.out.println(which + "### UnreliableChannel.processData():    this.sendQueue.size(): " + this.sendQueue.size());
+
         if ( this.sendQueue.size() == 0)
         {
-            System.out.println(which + "### UnreliableChannel.processData(): END: nothing to send!");
             return;
         }
 
-        System.out.println(which + "### UnreliableChannel.processData(): canDeliverOutOfOrder");
         if (this.canDeliverOutOfOrder )
         {
             Random random = new Random();
@@ -164,7 +146,6 @@ public class UnreliableChannel
         }
 
         // add in delayed packets
-        System.out.println(which + "### UnreliableChannel.processData(): delayedPackets...");
         ArrayList<Segment> noLongerDelayed = new ArrayList<>();
         for ( Segment seg : this.delayedPackets )
         {
@@ -176,7 +157,6 @@ public class UnreliableChannel
             }
         }
 
-        System.out.println(which + "### UnreliableChannel.processData(): noLongerDelayed...");
         for ( Segment seg : noLongerDelayed )
         {
             this.countSentPackets++;
@@ -252,21 +232,10 @@ public class UnreliableChannel
                 this.countAckPackets++;
             }
 
-            System.out.println(which + "UnreliableChannel len receiveQueue: " + this.receiveQueue.size());
-            // ###
-            for (Segment segment : this.receiveQueue) {
-                System.out.println(which + "### UnreliableChannel.processData(): receiveQueue segment (really rcvd after filters): " + segment.to_string());
-            }
+            System.out.println("UnreliableChannel len receiveQueue: " + this.receiveQueue.size());
         }
 
-        System.out.println(which + "### UnreliableChannel.processData(): clear the sendQueue");
         this.sendQueue.clear();
-        System.out.println(which + "### UnreliableChannel.processData(): Post this.sendQueue.clear()");
-        System.out.println(which + "UnreliableChannel manage - len receiveQueue: " + this.receiveQueue.size());
-        // ###
-        for (Segment segment : this.receiveQueue) {
-            System.out.println(which + "### UnreliableChannel.processData(): receiveQueue segment (after sendQueue.clear): " + segment.to_string());
-        }
-        System.out.println("### UnreliableChannel.processData(): END");
+        System.out.println("UnreliableChannel manage - len receiveQueue: " + this.receiveQueue.size());
     }
 }
