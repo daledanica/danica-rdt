@@ -19,7 +19,6 @@ package com.danicadale.cs372.rdt;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.TreeMap;
 
 
@@ -48,18 +47,21 @@ public class RDTLayer {
     // Max amount of data to send in a flow control window (in chars, not bytes)
     public static final int FLOW_CONTROL_WIN_SIZE = 15;
 
-    // ###
-    private final String whom;
-
-    private final Message dataSent = new com.danicadale.cs372.rdt.RDTLayer.Message();
-
-    private final Message dataRcvd = new com.danicadale.cs372.rdt.RDTLayer.Message();
+    private static final int lastCumulativeAck = -1;
 
     // any sent data not ACKed in this many iterations is a timeout->resend
     private final int TIME_OUT_ITERATIONS = 3;
 
-    // set this true to implement
-    private final boolean CUMULATIVE_ACK = false;
+    // set this true to implement cumulative ACKing
+    private final boolean CUMULATIVE_ACK = true;
+
+    // ###
+    private final String whom;
+
+    private final Message dataSent = new Message();  // used by client
+
+    private final Message dataRcvd = new Message();  // used by server
+
 
     // effectively, the number of time we have to resend a segment because we didn't get an ACK for it
     private int countSegmentTimeouts = 0;
@@ -332,7 +334,11 @@ public class RDTLayer {
         // How do you respond to what you have received?
         // How can you tell data segments apart from ack segemnts?
         System.out.println(whom + "### processReceiveAndSendRespond():    remembering what we've received...");
+        boolean anyDataRcvd = false;
         for (Segment segmentRcvd : listIncomingSegments) {
+
+            int highestSequenceRcvd = -1;
+
             if (isData(segmentRcvd)) {
                 // we should only be here if we're a server receiving from a client
                 System.out.println(whom
@@ -344,13 +350,20 @@ public class RDTLayer {
                                        + "### processReceiveAndSendRespond():    bad checksum!!! on "
                                        + segmentRcvd.to_string());
                     // bail out; don't ACK.  The client will retransmit when it times out on not getting the ACK
-                    dataRcvd.dump();  // dump to prove we didn't add it to our message
                     continue;
                 }
                 dataRcvd.addPacket(segmentRcvd);
+                anyDataRcvd = true;
 
                 // ack the rcvd segment
-                sendAck(segmentRcvd.getSegmentNumber());
+                if (!CUMULATIVE_ACK) {
+                    // we're ACKing every segment received from the client; very chatty
+                    sendAck(segmentRcvd.getSegmentNumber());
+                }
+                else {
+                    // keep track for sending a cumulative ack after we've received all the incoming segments
+                    highestSequenceRcvd = Math.max(highestSequenceRcvd, segmentRcvd.getSegmentNumber());
+                }
             }
             else if (isAck(segmentRcvd)) {
                 // we should only be here if we're a client (servers don't rcv ACKs)
@@ -361,12 +374,45 @@ public class RDTLayer {
                 this.dataSent.markAcked(ack);
             }
         }
+
+        if (CUMULATIVE_ACK && anyDataRcvd) {
+            // we can only cumulatively ACK the highest segment for which we have received all preceding segments; it
+            // may well not be the latest data segment we just read because we may still have "holes" in our message
+            // from preceding segments we haven't received due to missing, delayed, or corrupt segments that have yet
+            // to be retransmitted.
+            //
+            // Our contract is that we're ACKing back to the client "we're rcvd all your segments up to 'highest', so
+            // you can consider all of them ACK'ed, even though we didn't individually ACK each segment.
+            //
+            // Now, it's possible we've already done this before, because we're still waiting on retransmits.  And we
+            // can't keep track of what we've already sent ACKs on, because with the unreliable channel, we don't
+            // know that our ACKs were acktually (pun) received.  We don't ACK the ACKs.  But the client's ok with
+            // receiving re-ACKs.  They are a no-nop.
+            sendAck(this.dataRcvd.getHighestContiguousSequence());
+        }
+
         System.out.println(whom
                            + "### processReceiveAndSendRespond():    this.getDataReceived(): '"
                            + this.getDataReceived()
                            + "'");
 
         System.out.println(whom + "### processReceiveAndSendRespond() END\n\n");
+    }
+
+
+
+    public boolean getIsAllDataAcked() {
+
+        return dataSent.getIsEverythingAcked();
+    }
+
+
+
+    public void dumpAllSegments() {
+
+        dataSent.dump();
+        System.out.println("All data ACKed: " + getIsAllDataAcked());
+        System.out.println();
     }
 
 
@@ -388,6 +434,10 @@ public class RDTLayer {
 
     private void sendAck(int sequenceNumber) {
 
+        if (sequenceNumber == -1) {
+            // this means that we don't have contiguous segments ACKed yet.  There's nothing for us to do yet.
+            return;
+        }
         Segment segmentAck = new Segment();     // Segment acknowledging packet(s) received
         segmentAck.setAck(sequenceNumber);
         System.out.println(whom
@@ -459,32 +509,93 @@ public class RDTLayer {
 
             System.out.println("\nMessage");
             System.out.println("-------");
-            for (Entry<Integer, Packet> packet : packets.entrySet()) {
-                System.out.println("    {" + packet.getKey().toString() + ", " + packet.getValue().toString() + " }");
-            }
+            packets.entrySet()
+                   .forEach(p -> System.out.println("    {"
+                                                    + p.getKey().toString()
+                                                    + ", "
+                                                    + p.getValue().toString()
+                                                    + " }"));
             System.out.println();
+        }
+
+
+
+        public boolean getIsEverythingAcked() {
+
+            return !packets.values().stream().anyMatch(p -> !p.getIsAcked());
         }
 
 
 
         public void markAcked(Segment ack) {
 
-            Packet dataPacket = getPacket(ack.getAckNumber());
-            if (dataPacket == null) {
-                System.out.println("YIKES!!!!! trying to ack packet #"
-                                   + ack.getAckNumber()
-                                   + " but it doesn't exist!!!");
+            boolean anythingAcked = false;
+
+            if (!isAck(ack)) {
+                System.out.println("YIKES!!!!! trying to ACK with a non-ACK segment! " + ack.to_string());
                 return;
             }
-            if (dataPacket.getIsAcked()) {
-                // this can happen with delayed packets.  The client doesn't get an ACK, so it resends.  But then the
-                // delayed packet gets to the server and it ACKs.  Then we get here when the server re-ACKs our resend.
-                System.out.println("IHHHHHHH?  acking packet #" + ack.getAckNumber() + " but it is already acked!");
-                return;
+
+            if (CUMULATIVE_ACK) {
+                // first check to see if the server is just re-acking what it's already cumulatively ACK'ed because
+                // it's waiting on resends for missing segments.
+                if (ack.getAckNumber() == lastCumulativeAck) {
+                    // no sense redoing acks on what's already been acked.
+                    return;
+                }
+
+                // mark this segment and all its predecessors ACKed
+                for (int seqNum = 0; seqNum <= ack.getAckNumber(); seqNum++) {
+                    Packet dataPacket = getPacket(seqNum);
+                    if (dataPacket == null) {
+                        System.out.println("YIKES!!!!! trying to cumulative ACK packet #"
+                                           + ack.getAckNumber()
+                                           + " but it doesn't exist!!!");
+                        // do not attempt to continue! we have a hole in the contiguous segments; this is a bug!
+                        return;
+                    }
+                    if (!dataPacket.getIsAcked()) {
+                        // we don't really care if it's already been ACKed.. we could've re-ACKed it anyway
+                        System.out.println("\nCUMULATIVE ACK: " + dataPacket.getSequenceNumber() + "\n");
+                        dataPacket.setIsAcked();
+                        anythingAcked = true;
+                    }
+                }
             }
-            dataPacket.setIsAcked();
-            System.out.println("Packet #" + ack.getAckNumber() + " marked ACKed!");
-            dump();
+
+            else {
+                // we're ACKing every segment
+                Packet dataPacket = getPacket(ack.getAckNumber());
+                if (dataPacket == null) {
+                    System.out.println("YIKES!!!!! trying to ack packet #"
+                                       + ack.getAckNumber()
+                                       + " but it doesn't exist!!!");
+                    return;
+                }
+                if (dataPacket.getIsAcked()) {
+                    // this can happen with delayed packets.  The client doesn't get an ACK, so it resends.  But then
+                    // the
+                    // delayed packet gets to the server and it ACKs.  Then we get here when the server re-ACKs our
+                    // resend.
+                    System.out.println("IHHHHHHH?  acking packet #" + ack.getAckNumber() + " but it is already acked!");
+                    return;
+                }
+                dataPacket.setIsAcked();
+                anythingAcked = true;
+                System.out.println("Packet #" + ack.getAckNumber() + " marked ACKed!");
+            }
+
+            if (anythingAcked) dump();
+        }
+
+
+
+        public int getHighestContiguousSequence() {
+
+            int highest = -1;
+            while (packets.get(++highest) != null) ;
+
+            return --highest;
         }
 
 
@@ -507,7 +618,6 @@ public class RDTLayer {
 
             System.out.println("Message.addPacket(" + segment.to_string() + ")");
             addPacket(new Packet(segment));
-            dump();
         }
 
 

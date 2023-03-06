@@ -82,8 +82,11 @@ public class RDT_Main {
             String dataReceivedFromClient = rdt_server.getDataReceived();
             System.out.println("DataReceivedFromClient: '" + dataReceivedFromClient + "'");
 
-            if (dataReceivedFromClient.equals(dataToSend))
+            // ###
+            if (rdt_client.getIsAllDataAcked() && dataReceivedFromClient.equals(dataToSend))
+            //if (dataReceivedFromClient.equals(dataToSend))
             {
+                rdt_client.dumpAllSegments();
                 System.out.println("$$$$$$$$ ALL DATA RECEIVED $$$$$$$$");
                 break;
             }

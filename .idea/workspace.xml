@@ -4,8 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="eb2a1917-4fa9-46dd-8614-7aaac24e5e85" name="Default Changelist" comment="Wow!  Everything works with all the data errors enabled.">
+    <list default="true" id="eb2a1917-4fa9-46dd-8614-7aaac24e5e85" name="Default Changelist" comment="A little doc cleanup.">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/danicadale/cs372/rdt/RDTLayer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/danicadale/cs372/rdt/RDTLayer.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/danicadale/cs372/rdt/RDT_Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/danicadale/cs372/rdt/RDT_Main.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -64,7 +66,7 @@
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="pipelining" />
+        <entry key="$PROJECT_DIR$" value="main" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -188,7 +190,14 @@
       <option name="project" value="LOCAL" />
       <updated>1678048290397</updated>
     </task>
-    <option name="localTasksCounter" value="6" />
+    <task id="LOCAL-00006" summary="A little doc cleanup.">
+      <created>1678053383543</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1678053383543</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -200,24 +209,25 @@
     <MESSAGE value="Added readme" />
     <MESSAGE value="Wow!  Everything works with all the data errors enabled." />
     <MESSAGE value="Pipelining works." />
-    <option name="LAST_COMMIT_MESSAGE" value="Pipelining works." />
+    <MESSAGE value="A little doc cleanup." />
+    <option name="LAST_COMMIT_MESSAGE" value="A little doc cleanup." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/src/main/java/com/danicadale/cs372/rdt/RDT_Main.java</url>
-          <line>110</line>
+          <line>113</line>
           <option name="timeStamp" value="6" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/src/main/java/com/danicadale/cs372/rdt/RDT_Main.java</url>
-          <line>121</line>
+          <line>124</line>
           <option name="timeStamp" value="8" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/src/main/java/com/danicadale/cs372/rdt/RDTLayer.java</url>
-          <line>473</line>
+          <line>569</line>
           <option name="timeStamp" value="58" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
@@ -228,8 +238,23 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/src/main/java/com/danicadale/cs372/rdt/RDTLayer.java</url>
-          <line>268</line>
+          <line>270</line>
           <option name="timeStamp" value="86" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/main/java/com/danicadale/cs372/rdt/RDTLayer.java</url>
+          <line>550</line>
+          <option name="timeStamp" value="87" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/main/java/com/danicadale/cs372/rdt/RDTLayer.java</url>
+          <line>534</line>
+          <option name="timeStamp" value="91" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/main/java/com/danicadale/cs372/rdt/RDTLayer.java</url>
+          <line>543</line>
+          <option name="timeStamp" value="97" />
         </line-breakpoint>
         <breakpoint enabled="true" type="java-exception">
           <properties class="java.lang.IndexOutOfBoundsException" package="java.lang" />
